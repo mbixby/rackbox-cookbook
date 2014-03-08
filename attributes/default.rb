@@ -6,6 +6,7 @@ default["rackbox"]["upstream_start_port"]["passenger"] = 20001
 default["rackbox"]["default_config"]["nginx"]["template_name"] = "nginx_vhost.conf.erb"
 default["rackbox"]["default_config"]["nginx"]["template_cookbook"] = "rackbox"
 default["rackbox"]["default_config"]["nginx"]["listen_port"] = "80"
+default["rackbox"]["default_config"]["nginx"]["public_directory"] = "public"
 
 default["rackbox"]["default_config"]["unicorn"]["listen_port_options"] = { :tcp_nodelay => true, :backlog => 100 }
 default["rackbox"]["default_config"]["unicorn"]["worker_timeout"] = 60

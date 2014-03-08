@@ -59,12 +59,14 @@ module Rackbox
       config.merge(app_config || {})
     end
 
-    def setup_nginx_site(app, app_dir, upstream_port)
+    def setup_nginx_site(app, app_dir, upstream_port = nil)
+      is_static = !upstream_port
       upstream_server = "localhost:#{upstream_port}"
       config = merge_nginx_config(
         node["rackbox"]["default_config"]["nginx"],
         app["nginx_config"]
       )
+      root_path = ::File.join(app_dir, config["public_directory"])
 
       template( File.join(node["nginx"]["dir"], "sites-available", app["appname"]) ) do
         source    config["template_name"]
@@ -73,7 +75,8 @@ module Rackbox
         owner     "root"
         group     "root"
         variables(
-          :root_path   => ::File.join(app_dir, 'public'),
+          :is_static   => is_static,
+          :root_path   => root_path,
           :log_dir     => node["nginx"]["log_dir"],
           :appname     => app["appname"],
           :hostname    => app["hostname"],

@@ -15,3 +15,7 @@ end
 if node["rackbox"]["apps"]["passenger"]
   include_recipe "rackbox::passenger"
 end
+
+if node["rackbox"]["apps"]["static"]
+  include_recipe "rackbox::static"
+end

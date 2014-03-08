@@ -11,6 +11,7 @@ recipe "rackbox::ruby", "setup a ruby version manager `rbenv`."
 recipe "rackbox::nginx", "setup `nginx` as front-end server."
 recipe "rackbox::unicorn", "setup `unicorn` apps, if any."
 recipe "rackbox::passenger", "setup `passenger` apps, if any."
+recipe "rackbox::static", "setup static sites, if any."
 
 supports 'ubuntu'
 supports 'debian'

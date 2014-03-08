@@ -1,8 +1,10 @@
+<% unless @is_static -%>
 upstream <%= @appname %> {
 <% @servers.each do |server| -%>
   server <%= server %> fail_timeout=0;
 <% end -%>
 }
+<% end -%>
 
 server {
   server_name <%= @hostname %>;
@@ -29,7 +31,17 @@ server {
 
   # allow clients to upload large files (if necessary)
   client_max_body_size 4G;
+  
+<% if @is_static -%>
+  location / {
+    try_files /system/maintenance.html
+                $uri $uri/index.html $uri.html;
+    gzip_static on;
+    expires max;
+    add_header Cache-Control public;
+  }
 
+<% else -%>
   location / {
     try_files /system/maintenance.html
               $uri $uri/index.html $uri.html
@@ -59,4 +71,5 @@ server {
     proxy_busy_buffers_size     64k;
     proxy_temp_file_write_size  64k;
   }
+<% end -%>
 }
