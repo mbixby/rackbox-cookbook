@@ -4,6 +4,10 @@ module Rackbox
       "/etc/unicorn/#{ appname }.rb"
     end
 
+    def unicorn_pid_filepath(app_dir)
+      File.join app_dir, 'pids/unicorn.pid'
+    end
+
     def setup_passenger_runit(app, app_dir, default_port)
       default_config =  node["rackbox"]["default_config"]["passenger_runit"].to_hash
       default_config["port"] = default_port
@@ -37,18 +41,20 @@ module Rackbox
         app["runit_config"]
       )
       unicorn_config_file = unicorn_config_filepath(app["appname"])
+      pid_file = unicorn_pid_filepath(app_dir)
 
       runit_service app["appname"] do
         run_template_name  config["template_name"]
         log_template_name  config["template_name"]
-        cookbook       config["template_cookbook"]
+        cookbook           config["template_cookbook"]
         options(
-          :user                 => node["appbox"]["apps_user"],
+          :owner                => node["appbox"]["apps_user"],
           :group                => node["appbox"]["apps_user"],
-          :rack_env            => config["rack_env"],
+          :rack_env             => config["rack_env"],
           :smells_like_rack     => true, #::File.exists?(::File.join(app_dir, "config.ru")),
           :unicorn_config_file  => unicorn_config_file,
-          :working_directory    => app_dir
+          :working_directory    => app_dir,
+          :pid_file             => pid_file
         )
         restart_on_update false
       end
@@ -104,8 +110,40 @@ module Rackbox
         node["rackbox"]["default_config"]["unicorn"],
         app["unicorn_config"],
         app_dir,
-        default_port
+        default_port,
       )
+      config["pid"] ||= unicorn_pid_filepath(app_dir)
+
+      # When sent a USR2, Unicorn will suffix its pidfile with .oldbin and
+      # immediately start loading up a new version of itself (loaded with a new
+      # version of our app). When this new Unicorn is completely loaded
+      # it will begin spawning workers. The first worker spawned will check to
+      # see if an .oldbin pidfile exists. If so, this means we've just booted up
+      # a new Unicorn and need to tell the old one that it can now die. To do so
+      # we send it a QUIT.
+      #
+      # Using this method we get 0 downtime deploys.
+      config["before_fork"] = %{
+        #{config["before_fork"]}
+
+        old_pid = "#{config["pid"]}.oldbin"
+
+        if File.exists?(old_pid) && server.pid != old_pid
+          begin
+            Process.kill("QUIT", File.read(old_pid).to_i)
+          rescue Errno::ENOENT, Errno::ESRCH
+            # someone else did our job for us
+          end
+        end
+      }.unindent
+
+      # via http://unicorn.bogomips.org/Sandbox.html
+      # See section on BUNDLER_GEMFILE for Capistrano users
+      # We need this since we automatically run deploy:clean to 
+      # cleanup old releases.
+      config["before_exec"] ||= %{
+        ENV["BUNDLE_GEMFILE"] = "#{app_dir}/Gemfile"
+      }.unindent
 
       unicorn_config unicorn_config_filepath(app["appname"]) do
         config.each do |key, value|
@@ -121,10 +159,18 @@ module Rackbox
 
       config = config.merge(
         :listen => { upstream_port => port_options },
-        :working_directory => app_dir
+        :working_directory => app_dir,
+        :stderr_path => File.join(app_dir, "log/unicorn.stderr.log"),
+        :stdout_path => File.join(app_dir, "log/unicorn.std.log")
       )
       config.merge(app_config || {})
     end
   end
 
+end
+
+class String
+  def unindent 
+    gsub(/^#{match(/^\s+/)}/, "") 
+  end
 end

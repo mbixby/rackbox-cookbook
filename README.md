@@ -22,6 +22,12 @@ And overwrite attributes to customize the cookbook.
 
 See also [teohm/kitchen-sample](https://github.com/teohm/kitchen-example) for `rackbox` usage example with chef-solo.
 
+# Troubleshooting & Log paths
+
+* runit run logs: `/etc/sv/{app}/log/main/current`
+* nginx logs: `/var/log/nginx/{app}.log`
+* unicorn logs: `/home/apps/{app}/current/log/unicorn.stderr.log`
+
 # Attributes
 
 You **should** specify the ruby versions to be installed:
@@ -88,9 +94,10 @@ You may change the **default config** settings:
  * **unicorn**:
    * `node["rackbox"]["default_config"]["unicorn"]["listen_port_options"]` (default: `{ :tcp_nodelay => true, :backlog => 100 }`) - unicorn listen port options.
    * `node["rackbox"]["default_config"]["unicorn"]["worker_timeout"]` (default: `60`) - unicorn worker timeout.
-   * `node["rackbox"]["default_config"]["unicorn"]["preload_app"]` (default: `false`) - unicorn preload app flag.
+   * `node["rackbox"]["default_config"]["unicorn"]["preload_app"]` (default: `true`) - unicorn preload app flag.
    * `node["rackbox"]["default_config"]["unicorn"]["worker_processes"]` (default: `[node[:cpu][:total].to_i * 4, 8].min`) - total unicorn worker.
-   * `node["rackbox"]["default_config"]["unicorn"]["before_fork"]` (default: `'sleep 1'`) - unicorn before_fork handler.
+   * `node["rackbox"]["default_config"]["unicorn"]["before_fork"]` (default: `'defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!'`) - unicorn before_fork handler.
+   * `node["rackbox"]["default_config"]["unicorn"]["after_fork"]` (default: `'defined?(ActiveRecord::Base) and ActiveRecord::Base.establish_connection'`) - unicorn after_fork handler.
  * **unicorn_runit**:
    * `node["rackbox"]["default_config"]["unicorn_runit"]["template_name"]` (default: `"unicorn"`) - name to lookup unicorn runit templates (templates: `"sv-#{template_name}-run.erb"`, `"sv-#{template_name}-log-run.erb`).
    * `node["rackbox"]["default_config"]["unicorn_runit"]["template_cookbook"]` (default: `"rackbox"`) - cookbook containing the templates.

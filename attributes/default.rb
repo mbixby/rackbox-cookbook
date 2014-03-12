@@ -10,9 +10,12 @@ default["rackbox"]["default_config"]["nginx"]["public_directory"] = "public"
 
 default["rackbox"]["default_config"]["unicorn"]["listen_port_options"] = { :tcp_nodelay => true, :backlog => 100 }
 default["rackbox"]["default_config"]["unicorn"]["worker_timeout"] = 60
-default["rackbox"]["default_config"]["unicorn"]["preload_app"] = false
+default["rackbox"]["default_config"]["unicorn"]["preload_app"] = true
+default["rackbox"]["default_config"]["unicorn"]["copy_on_write"] = true
 default["rackbox"]["default_config"]["unicorn"]["worker_processes"] = [node[:cpu][:total].to_i * 4, 8].min
-default["rackbox"]["default_config"]["unicorn"]["before_fork"] = 'sleep 1'
+# See helpers.rb for additional (non-overwritable) unicorn config
+default["rackbox"]["default_config"]["unicorn"]["before_fork"] = "defined?(ActiveRecord::Base) and ActiveRecord::Base.connection.disconnect!"
+default["rackbox"]["default_config"]["unicorn"]["after_fork"] = "defined?(ActiveRecord::Base) and ActiveRecord::Base.establish_connection"
 
 default["rackbox"]["default_config"]["unicorn_runit"]["template_name"] = "unicorn"
 default["rackbox"]["default_config"]["unicorn_runit"]["template_cookbook"] = "rackbox"
